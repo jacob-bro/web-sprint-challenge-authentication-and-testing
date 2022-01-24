@@ -26,6 +26,20 @@ const checkUserInDB = async (req,res,next)=>{
   }
 }
 
+const checkUserExists = async (req,res,next)=>{
+  try{
+    const rows = await User.findBy({username:req.body.username})
+    if(rows.length){
+      req.userData = rows[0]
+      next()
+    }else{
+      res.status(401).json("invalid credentials")
+    }
+  }catch(e){
+    res.status(401).json(`Server Error: ${e}`)
+  }
+}
+
 router.post('/register',checkPayload,checkUserInDB, async (req, res) => {
   try{
     const hash = bcrypt.hashSync(req.body.password,8)
@@ -61,18 +75,22 @@ router.post('/register',checkPayload,checkUserInDB, async (req, res) => {
   */
 });
 
-router.post('/login', (req, res) => {
- try{
-   const verified = bcrypt.compareSync(req.body.password,req.userData.password)
-   if(verified){
-      req.session.user = req.userData
-      res.json(`wecome, ${req.userData.username}`)
-   }else{
-     res.status(401).json("invalid credentials")
-   }
- }catch(e){
-   res.status(500).json(`Server error: ${e}`)
- }
+router.post('/login',checkUserExists,checkPayload, (req, res) => {
+ let { username, password } = req.body
+
+ User.findBy({ username })
+    .then(([user]) => {
+      if (user && bcrypt.compareSync(password, user.password)) {
+        const token = makeToken(user)
+        res.status(200).json({ 
+          message: `welcome, ${user.username}`, 
+          token
+        })
+      } else {
+        next({ status: 401, message: 'invalid credentials' })
+      }
+    })
+    .catch(next)
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -105,9 +123,9 @@ function makeToken(user){
     role: user.role
   }
   const options = {
-    expiresIn: "20s"
+    expiresIn: "60s"
   }
-  return jwt.sign(payload, "secretphrasehere" ,options)
+  return jwt.sign(payload, "secrethere" ,options)
 }
 
 module.exports = router;
