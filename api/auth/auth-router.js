@@ -1,7 +1,22 @@
+const express = require("express")
 const router = require('express').Router();
+const jwt = require("jsonwebtoken")
+const bcrypt = require("bcryptjs")
 
-router.post('/register', (req, res) => {
-  res.end('implement register, please!');
+const checkUserInDB = async (req,res,next)=>{
+  try{
+    const rows = await User.findBy()
+  }
+}
+
+router.post('/register', async (req, res) => {
+  try{
+    const hash = bcrypt.hashSync(req.body.password,8)
+    const newUser = await User.add({username:req.body.username,password:hash})
+    res.status(201).json(newUser)
+  }catch(e){
+    res.status(500).json(`Server Error: ${e}`)
+  }
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -55,5 +70,17 @@ router.post('/login', (req, res) => {
       the response body should include a string exactly as follows: "invalid credentials".
   */
 });
+
+function makeToken(user){
+  const payload = {
+    subject: user.id,
+    username: user.username,
+    role: user.role
+  }
+  const options = {
+    expiresIn: "20s"
+  }
+  return jwt.sign(payload, "secretphrasehere" ,options)
+}
 
 module.exports = router;

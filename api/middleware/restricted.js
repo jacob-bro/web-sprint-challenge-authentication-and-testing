@@ -1,3 +1,5 @@
+const jwt = require("jsonwebtoken")
+
 module.exports = (req, res, next) => {
   next();
   /*
@@ -12,3 +14,19 @@ module.exports = (req, res, next) => {
       the response body should include a string exactly as follows: "token invalid".
   */
 };
+
+const restricted = (req,res,next) => {
+  const token = req.headers.authorization
+  if(!token){
+    res.status(401),json("token required")
+  }else{
+    jwt.verify(token, "secrethere", (err,decoded)=>{
+      if(err){
+        res.status(401).json("token invalid" + err.message)
+      }else{
+        req.decodedToken = decoded
+        next()
+      }
+    })
+  }
+}
