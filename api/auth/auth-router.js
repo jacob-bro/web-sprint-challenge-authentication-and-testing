@@ -2,14 +2,31 @@ const express = require("express")
 const router = require('express').Router();
 const jwt = require("jsonwebtoken")
 const bcrypt = require("bcryptjs")
+const User = require("../jokes/model")
 
-const checkUserInDB = async (req,res,next)=>{
-  try{
-    const rows = await User.findBy()
+const checkPayload = (req,res,next)=>{
+  if(!req.body.username || !req.body.password){
+    res.status(401).json("username and password required")
+  }else{
+    next()
   }
 }
 
-router.post('/register', async (req, res) => {
+
+const checkUserInDB = async (req,res,next)=>{
+  try{
+    const rows = await User.findBy({username:req.body.username})
+    if(!rows.length){
+      next()
+    }else{
+      res.status(401).json("username taken")
+    }
+  }catch(e){
+    res.status(401).json(`Server Error: ${e}`)
+  }
+}
+
+router.post('/register',checkPayload,checkUserInDB, async (req, res) => {
   try{
     const hash = bcrypt.hashSync(req.body.password,8)
     const newUser = await User.add({username:req.body.username,password:hash})
@@ -45,7 +62,17 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', (req, res) => {
-  res.end('implement login, please!');
+ try{
+   const verified = bcrypt.compareSync(req.body.password,req.userData.password)
+   if(verified){
+      req.session.user = req.userData
+      res.json(`wecome, ${req.userData.username}`)
+   }else{
+     res.status(401).json("invalid credentials")
+   }
+ }catch(e){
+   res.status(500).json(`Server error: ${e}`)
+ }
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
