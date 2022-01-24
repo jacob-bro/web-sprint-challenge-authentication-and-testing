@@ -24,7 +24,7 @@ describe("Model Tests",()=>{
   describe("Test One",=>{
     it("add user to database",async ()=>{
       let all
-      await model.insert(dummy)
+      await model.add(dummy)
       all = await db("users")
       expect(all).toHaveLength(1)
     })
